@@ -1,6 +1,4 @@
-# MLOPS_Project
-
-# 🏠 House Price Estimator API
+# MLOPS_Project —— House Price Estimator API
 
 ## 1. What We Did
 
