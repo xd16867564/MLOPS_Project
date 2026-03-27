@@ -1,31 +1,35 @@
 # MLOPS_Project —— House Price Estimator API
 
+A FastAPI-based REST API that estimates whether a French property's asking
+price is fair, given its city and surface area.
+
 ## 1. What We Did
 
-We built a FastAPI-based REST API that estimates residential property prices
-from house characteristics (surface area, number of rooms, location score,
-energy rating, etc.).
+We built a lightweight REST API that answers one simple question:
 
-The project started from a deterministic, rule-based pricing function and was
-progressively upgraded following MLOps principles:
+> *"Is this asking price reasonable for this city and surface area?"*
 
-- Replaced the rule-based scorer with a **regression model** trained on real
-  housing transaction data
-- Separated concerns: API layer (`main.py`), business logic (`scoring.py`),
-  model training (`train_model.py`), input validation (`validation.py`)
-- Packaged the service with **Docker** for reproducible deployment
+Starting from a minimal FastAPI skeleton (rule-based scorer, no data), we:
+
+- Integrated a **real dataset** of 24,389 French cities with their average
+  price per m² (source: DVF / official French property transactions)
+- Replaced the placeholder scoring logic with a **data-driven benchmark**:
+  expected price = `avg_price_m²(city) × surface`
+- Added **input validation** via Pydantic (HTTP 422 on bad inputs)
+- Structured the project following MLOps separation of concerns:
+  - `app/main.py` — API layer only
+  - `app/scoring.py` — business logic & inference
+  - `app/validation.py` — input schema
+  - `train_model.py` — data validation & benchmark summary (offline)
+- Containerised the service with **Docker**
 - Managed dependencies via `pyproject.toml`
-- Stored the trained model as an artifact (`artifacts/model.json`) committed
-  alongside the code, so the API is self-contained and immediately runnable
 
-The API exposes a single endpoint:
+The API endpoint:
 ```
-
-GET /score?surface=80&nb\_room=3&price=250000
+GET /score?city=TOULON&surface=60&price=200000
 ```
-
-It returns an estimated price, the gap to the asked price (€ and %), and a
-label: `underpriced` / `fair` / `overpriced`.
+Returns: expected price, gap in € and %, and a label (`underpriced` /
+`fair` / `overpriced`).
 
 ---
 
@@ -34,64 +38,62 @@ label: `underpriced` / `fair` / `overpriced`.
 ### Part 1 — Non-Technical (What? Who? Why?)
 
 **What?**
-A tool that answers one simple question a property buyer asks constantly:
-*"Is this asking price reasonable given what the flat actually is?"*
+A tool that gives an instant market sanity check on a property's asking price.
 
 **Who?**
-Anyone evaluating a property purchase who wants a quick, data-backed sanity
-check — without needing a real-estate agent or financial expertise.
+Anyone evaluating a property purchase in France — a first-time buyer, an
+investor, or a student doing an MLOps assignment — who wants a quick,
+data-backed signal without needing a real-estate agent.
 
 **Why?**
-Property prices are opaque. Listings rarely tell you whether a price is
-justified. We wanted a lightweight, transparent tool that gives an instant
-signal: the price is either in line with comparable transactions, above, or
-below market.
+Property prices are opaque. A listing rarely tells you whether a price is
+justified relative to the local market. We wanted a simple, transparent tool
+that gives an immediate verdict: the price is in line with comparable
+transactions, above, or below market.
 
 ---
 
 ### Part 2 — Technical Problem Statement
 
 **Problem:**
-Given a set of observable property characteristics
-(surface area *s*, number of rooms *r*, and optionally other features),
-estimate a fair market price *p̂* and flag whether a listed price *p* deviates
+Given observable inputs — city name, surface area (m²), and asking price (€)
+— estimate a fair market price and flag whether the asking price deviates
 significantly from it.
 
 **Approach:**
 
-We model log(price) as a linear function of the inputs:
+We use a benchmark model:
+```
+expected_price = avg_price_m²(city) × surface
+ratio          = asked_price / expected_price
 ```
 
-log(p̂) = b₀ + b₁·s + b₂·r
+`avg_price_m²` per city comes from a dataset of 24,389 French communes
+derived from DVF (Demande de Valeur Foncière), the official French
+property transaction registry.
+
+Labels are assigned by fixed thresholds on the ratio:
+- `underpriced` if ratio < 0.90
+- `fair`        if 0.90 ≤ ratio ≤ 1.10
+- `overpriced`  if ratio > 1.10
+
+A score ∈ [0, 1] measures proximity to the expected price:
+```
+score = max(0, 1 − |ratio − 1|)
 ```
 
-Using log-price rather than raw price stabilises variance and captures
-proportional effects (a 10 % deviation means the same thing whether the flat
-costs €150 k or €500 k).
-
-Coefficients (b₀, b₁, b₂) and residual standard deviation σ are estimated
-offline via OLS regression on a labelled dataset of real transactions
-(`train_model.py`), then serialised to `artifacts/model.json`.
-
-At inference time the API:
-1. Loads the frozen model artifact
-2. Computes p̂ from the inputs
-3. Calculates `ratio = p / p̂` and a normalised deviation score
-4. Returns a label based on thresholds:
-   - `underpriced` if ratio < 0.90
-   - `fair`        if 0.90 ≤ ratio ≤ 1.10
-   - `overpriced`  if ratio > 1.10
-
-**Why not a more complex model?**
-With a small dataset a linear model on log-price is interpretable, fast, and
-avoids overfitting. Complexity can be added incrementally (see §3).
+**Why not a regression model?**
+With one feature per city (avg price/m²) and no transaction-level data in
+our pipeline, a lookup benchmark is both interpretable and optimal. A
+regression would add complexity without improving accuracy at this stage.
+The architecture is designed so `scoring.py` can be swapped for an ML model
+later with no change to the API layer.
 
 **Data:**
-[Describe your dataset here — e.g. "Ames Housing dataset (1 460 transactions)"
-or "DVF open data, département XX, 2024–2025"]
-
-**Training set size:** n = [X] transactions after filtering
-**Validation approach:** [e.g. 80/20 train-test split, RMSE on log-price]
+- Source: DVF open data (French government), aggregated by commune
+- Coverage: 24,389 French cities
+- Key column: `avg_price_m2` (average €/m² per city)
+- Cleaning: rows with missing or non-numeric prices are skipped at load time
 
 ---
 
@@ -99,27 +101,28 @@ or "DVF open data, département XX, 2024–2025"]
 
 | Area | Current state | Next step |
 |---|---|---|
-| **Data** | Small / synthetic dataset | Use a richer open dataset (DVF, Ames, etc.) |
-| **Model** | OLS linear regression | Try gradient boosting (XGBoost, LightGBM) |
-| **Features** | Surface + rooms only | Add location, floor, energy rating, build year |
-| **Validation** | Manual testing | Add unit tests (`pytest`) + CI via GitHub Actions |
-| **Monitoring** | None | Log predictions; detect drift over time |
-| **Deployment** | Local Docker only | Host on a serverless platform (Render, Railway…) |
-| **History** | No persistence | Store queries in SQLite; export to `.xlsx` |
-| **UI** | API only | Add a minimal frontend (HTML form or Streamlit) |
+| **Model** | City avg price lookup | Linear regression on surface + rooms + location |
+| **Features** | City + surface only | Add number of rooms, floor, energy rating, build year |
+| **Data freshness** | Static CSV | Auto-refresh from DVF API on a schedule |
+| **Validation** | Pydantic schema | Add city existence check with helpful error message |
+| **Testing** | Manual via /docs | Unit tests with `pytest` + CI via GitHub Actions |
+| **Monitoring** | None | Log predictions, track drift over time |
+| **Deployment** | Local / Codespaces | Host on serverless platform (Render, Railway) |
+| **History** | No persistence | Store queries in SQLite, export to `.xlsx` |
+| **UI** | JSON API only | Add a simple HTML form frontend |
 
 ---
 
 ## Project Structure
 ```
-
 ├── app/
-│ ├── main.py          # FastAPI entrypoint
-│ ├── scoring.py       # Model inference & labelling
-│ └── validation.py    # Input validation (HTTP 422)
-├── train\_model.py     # Offline training → artifacts/model.json
-├── artifacts/
-│ └── model.json       # Serialised model coefficients
+│   ├── main.py          # FastAPI entrypoint
+│   ├── scoring.py       # Benchmark inference & labelling
+│   └── validation.py    # Pydantic input validation
+├── data/
+│   └── city_price_benchmark.csv   # 24 389 French cities, avg €/m²
+├── train_model.py       # Offline data validation & summary
+├── artifacts/           # Reserved for future model artifacts
 ├── Dockerfile
 ├── pyproject.toml
 └── README.md
@@ -130,20 +133,23 @@ or "DVF open data, département XX, 2024–2025"]
 ## Quick Start
 ```bash
 # Install dependencies
-pip install -e .
+pip install fastapi uvicorn pydantic
 
-# Train the model (offline)
-python train_model.py --csv your_data.csv --out artifacts/model.json
+# Validate the dataset
+python train_model.py
 
 # Run the API
 uvicorn app.main:app --reload --port 8000
-# → http://127.0.0.1:8000/score?surface=60&nb_room=2&price=200000
+```
 
-# Docker
+Test it:
+```
+http://127.0.0.1:8000/docs
+http://127.0.0.1:8000/score?city=TOULON&surface=60&price=200000
+```
+
+Docker:
+```bash
 docker build -t house-price-api .
 docker run --rm -p 8001:8000 house-price-api
 ```
-
----
-
-*Project created as part of an MLOps course assignment.*
