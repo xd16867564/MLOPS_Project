@@ -10,7 +10,12 @@ def load_benchmark() -> dict:
     with open(DATA_PATH, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            benchmark[row["Commune"]] = float(row["avg_price_m2"])
+            try:
+                val = row["avg_price_m2"].strip()
+                if val:
+                    benchmark[row["Commune"]] = float(val)
+            except ValueError:
+                pass  # skip rows with invalid price
     return benchmark
 
 BENCHMARK = load_benchmark()
