@@ -25,11 +25,10 @@ Starting from a minimal FastAPI skeleton (rule-based scorer, no data), we:
 - Managed dependencies via `pyproject.toml`
 
 The API endpoint:
-```
-GET /score?city=TOULON&surface=60&price=200000
-```
-Returns: expected price, gap in € and %, and a label (`underpriced` /
-`fair` / `overpriced`).
+- `GET /score?city=TOULON&surface=60&price=200000`  
+  Returns: expected price, gap in € and %, and a label (`underpriced` / `fair` / `overpriced`)
+- `GET /compare?cities=TOULON,BORDEAUX,NICE&surface=60`  
+  Returns: ranked comparison of up to 10 cities by expected price, highlighting cheapest and most expensive
 
 ---
 
@@ -109,7 +108,7 @@ later with no change to the API layer.
 | **Monitoring** | None | Log predictions, track drift over time |
 | **Deployment** | Local / Codespaces | Host on serverless platform (Render, Railway) |
 | **History** | No persistence | Store queries in SQLite, export to `.xlsx` |
-| **UI** | JSON API only | Add a simple HTML form frontend |
+| **UI** | Simple HTML frontend with Price Check & City Compare tabs | Richer visualisations (map view, price history chart) |
 
 ---
 
@@ -119,6 +118,8 @@ later with no change to the API layer.
 │   ├── main.py          # FastAPI entrypoint
 │   ├── scoring.py       # Benchmark inference & labelling
 │   └── validation.py    # Pydantic input validation
+│   └── static/
+│       └── index.html   # Frontend UI
 ├── data/
 │   └── city_price_benchmark.csv   # 24 389 French cities, avg €/m²
 ├── train_model.py       # Offline data validation & summary
@@ -146,6 +147,8 @@ Test it:
 ```
 http://127.0.0.1:8000/docs
 http://127.0.0.1:8000/score?city=TOULON&surface=60&price=200000
+http://127.0.0.1:8000/compare?cities=TOULON,BORDEAUX,NICE&surface=60
+http://127.0.0.1:8000/ui
 ```
 
 Docker:
