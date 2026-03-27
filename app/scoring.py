@@ -60,3 +60,31 @@ def compute_score(req: ScoreRequest) -> dict:
         "label": label,
         "score": score,
     }
+
+def compare_cities(cities: list[str], surface: float) -> dict:
+    results = []
+    not_found = []
+
+    for city in cities:
+        city = city.strip().upper()
+        if city not in BENCHMARK:
+            not_found.append(city)
+            continue
+        avg_price_m2 = BENCHMARK[city]
+        expected_price = round(avg_price_m2 * surface, 2)
+        results.append({
+            "city": city,
+            "avg_price_m2": avg_price_m2,
+            "expected_price": expected_price,
+        })
+
+    # sort cheapest to most expensive
+    results.sort(key=lambda x: x["expected_price"])
+
+    return {
+        "surface_m2": surface,
+        "comparison": results,
+        "not_found": not_found,
+        "cheapest": results[0]["city"] if results else None,
+        "most_expensive": results[-1]["city"] if results else None,
+    }
