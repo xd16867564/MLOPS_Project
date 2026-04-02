@@ -15,7 +15,7 @@ Starting from a minimal FastAPI skeleton (rule-based scorer, no data), we:
 - Integrated a **real dataset** of 24,389 French cities with their average price per m² (source: DVF / official French property transactions)
 - Replaced the placeholder scoring logic with a **data-driven benchmark**: `expected price = avg_price_m²(city) × surface`
 - Added **input validation** via Pydantic (HTTP 422 on bad inputs)
-- Added **data quality filtering**: prices above 50,000 €/m² are excluded at load time as data entry errors (e.g. DVF records where total transaction value was mistakenly recorded as unit price)
+- Added **data quality filtering**: prices above 70,000 €/m² are excluded at load time as data entry errors (e.g. DVF records where total transaction value was mistakenly recorded as unit price)
 - Added a **city search endpoint** (`/search`) for real-time autocomplete
 - Built a **bilingual frontend** (EN/FR) with two tabs: Price Check and City Compare, served as a static file via FastAPI
 - Structured the project following MLOps separation of concerns:
@@ -99,7 +99,7 @@ During development we discovered several DVF records with clearly erroneous unit
 | **Features** | City + surface only | Add number of rooms, floor, energy rating, build year |
 | **Price range** | Single expected price | Show a ±20% estimated range to reflect real market variance |
 | **Data freshness** | Static CSV | Auto-refresh from DVF API on a schedule |
-| **Data quality** | Hard cap at 50,000 €/m² | Cross-validate against a secondary source (e.g. Meilleurs Agents API) |
+| **Data quality** | Hard cap at 70,000 €/m² | Cross-validate against a secondary source (e.g. Meilleurs Agents API) |
 | **Testing** | Manual via /docs | Unit tests with `pytest` + CI via GitHub Actions |
 | **Monitoring** | None | Log predictions, track drift over time |
 | **Deployment** | Local only | Host on serverless platform (Render, Railway) |
