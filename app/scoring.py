@@ -1,6 +1,7 @@
 import csv
 import os
 from app.validation import ScoreRequest
+import statistics
 
 # Load city benchmark data once at startup
 DATA_PATH = os.path.join(os.path.dirname(__file__), "../data/city_price_benchmark.csv")
@@ -15,8 +16,14 @@ def load_benchmark() -> dict:
                 if val:
                     benchmark[row["Commune"]] = float(val)
             except ValueError:
-                pass  # skip rows with invalid price
-    return benchmark
+                pass
+
+
+    upper = 70000
+    cleaned = {city: p for city, p in benchmark.items() if 0 < p <= upper}
+
+    print(f"Benchmark loaded: {len(benchmark)} cities → {len(cleaned)} after outlier removal (max: {upper} €/m²)")
+    return cleaned
 
 BENCHMARK = load_benchmark()
 
