@@ -114,8 +114,7 @@ During development we discovered several DVF records with clearly erroneous unit
 │   ├── main.py          # FastAPI entrypoint & routing
 │   ├── scoring.py       # Benchmark inference, labelling & data cleaning
 │   ├── validation.py    # Pydantic input schema
-│   └── static/
-│       └── index.html   # Bilingual frontend (EN/FR)
+│   └── index.html       # Bilingual frontend (EN/FR)
 ├── data/
 │   └── city_price_benchmark.csv   # 24,389 French cities, avg €/m²
 ├── train_model.py       # Offline data validation & summary
