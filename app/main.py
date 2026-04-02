@@ -1,7 +1,9 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.validation import ScoreRequest
-from app.scoring import compute_score
 from app.scoring import compute_score, compare_cities
+from app import scoring
 
 app = FastAPI(title="House Price Estimator API")
 
@@ -22,3 +24,13 @@ def compare(cities: str, surface: float):
     if len(city_list) > 10:
         return {"error": "Maximum 10 cities at once"}
     return compare_cities(city_list, surface)
+
+@app.get("/search")
+def search(q: str, limit: int = 30):
+    from app import scoring
+    q = q.strip().upper()
+    if len(q) < 2:
+        return {"results": []}
+    matches = [city for city in scoring.BENCHMARK.keys() if city.startswith(q)]
+    matches.sort()
+    return {"results": matches[:limit]}
