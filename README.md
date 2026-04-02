@@ -2,6 +2,9 @@
 
 A FastAPI-based REST API that estimates whether a French property's asking price is fair, given its city and surface area.
 
+![Price Check](assets/Screenshot%20-%20House%20price%20estimation%20preview.png)
+
+![City Compare](assets/Screenshot%20-%20House%20price%20comparison%20preview.png)
 ---
 
 ## 1. What We Did
