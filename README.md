@@ -107,7 +107,7 @@ During development we discovered several DVF records with clearly erroneous unit
 | **Monitoring** | None | Log predictions, track drift over time |
 | **Deployment** | Local only | Host on serverless platform (Render, Railway) |
 | **History** | In-memory (lost on refresh) | Persist queries in SQLite, export to `.xlsx` |
-| **UI** | Bilingual frontend, autocomplete, multi-city compare | Map view, price history chart |
+| **UI** | Simple HTML frontend (Price Check + City Compare) | Map view, price history chart, price trend over time |
 
 ---
 
@@ -121,7 +121,6 @@ During development we discovered several DVF records with clearly erroneous unit
 ├── data/
 │   └── city_price_benchmark.csv   # 24,389 French cities, avg €/m²
 ├── train_model.py       # Offline data validation & summary
-├── artifacts/           # Reserved for future model artifacts
 ├── Dockerfile
 ├── pyproject.toml
 └── README.md
