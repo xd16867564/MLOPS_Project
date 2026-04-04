@@ -118,10 +118,13 @@ During development we discovered several DVF records with clearly erroneous unit
 │   ├── scoring.py       # Benchmark inference, labelling & data cleaning
 │   ├── validation.py    # Pydantic input schema
 │   └── index.html       # Bilingual frontend (EN/FR)
+├── assets/              # Screenshots for README documentation
 ├── data/
 │   └── city_price_benchmark.csv   # 24,389 French cities, avg €/m²
 ├── train_model.py       # Offline data validation & summary
+├── .gitignore
 ├── Dockerfile
+├── poetry.lock
 ├── pyproject.toml
 └── README.md
 ```
